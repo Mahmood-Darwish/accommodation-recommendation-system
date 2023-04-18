@@ -19,11 +19,10 @@ room_priority_weight = [
 
 
 def getClusterCenter(input: List[int]) -> List[float]:
-    transformed_data = pca_reload.transform(input)[0]
     min_dis = 0
     min_idx = -1
     for idx, cluster in enumerate(clusters):
-        cur_dis = dist(cluster, transformed_data)
+        cur_dis = dist(cluster, input)
         if min_idx == -1 or cur_dis < min_dis:
             min_dis = cur_dis
             min_idx = idx
@@ -33,11 +32,13 @@ def getClusterCenter(input: List[int]) -> List[float]:
 def calcDisToRoom(data: List[float], room_type: int, room_priority: int, room: List[float]) -> float:
     res = 0
     idx = 2
+    num_of_students = 0
     while idx < 7 and room[idx] != []:
+        num_of_students += 1
         for i in range(len(data)):
             res += abs(data[i] - room[idx][i])
         idx += 1
-    res /= len(data)
+    res /= num_of_students
     k = room_priority_weight[room_priority][room_type == room[1]]
     return res * k
 
@@ -67,7 +68,8 @@ def recommend() -> Response:
 @app.route("/add", methods=["POST"])
 def add() -> Response:
     data = request.json
-    cluster_center = getClusterCenter([data["Answers"][:-2]])
+    transformed_data = pca_reload.transform([data["Answers"][:-2]])[0]
+    cluster_center = getClusterCenter(transformed_data)
     added = handle_db.add(data["Answers"][-1],
                           data["Answers"][-2], cluster_center)
     return jsonify(added)
